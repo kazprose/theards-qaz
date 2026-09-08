@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import date
@@ -32,6 +33,31 @@ ADEPKI_JOL = Path(os.getenv("THREADS_JURNAL", ".threads-jurnal.jsonl"))
 EN_AZ_ULGI = 5
 
 MAQSATTAR = ("jauap", "repost", "laik", "dayekshe")
+
+# Драфттан машинамен алынатын белгілер. Тізім әдейі қысқа: журналда
+# сақталатын нәрсе ғана, әрі әрқайсысы бір ғана мағына білдіреді.
+SOILEM_BOLGISH = re.compile(r"[^.!?\n]+")
+SOZ_ULGI = re.compile(r"[\wЀ-ӿ]+", re.UNICODE)
+HASHTAG_ULGI = re.compile(r"(?<!\w)#[\wЀ-ӿ]+", re.UNICODE)
+URL_ULGI = re.compile(r"https?://\S+")
+SAN_ULGI = re.compile(r"\d")
+
+
+def belgiler_al(mati: str) -> dict[str, int]:
+    """Драфттан салыстыруға жарайтын белгілерді шығарады.
+
+    Бәрі бүтін сан: кейін жоғарғы жарты мен төменгі жартының медианасын
+    салыстыру үшін. Мағынаны бағаламайды — тек құрылымды.
+    """
+    birinshi_soilem = (SOILEM_BOLGISH.search(mati) or type("", (), {"group": lambda s: ""})()).group()
+    birinshi_jol = mati.split("\n", 1)[0]
+    return {
+        "tanba": len(mati),
+        "bas_soilem_soz": len(SOZ_ULGI.findall(birinshi_soilem or "")),
+        "hashtag": len(HASHTAG_ULGI.findall(mati)),
+        "siltem_bas_jolda": int(bool(URL_ULGI.search(birinshi_jol))),
+        "san_bar": int(bool(SAN_ULGI.search(mati))),
+    }
 
 
 @dataclass
@@ -85,10 +111,13 @@ class Jazba:
     url: str = ""
     eskertpe: str = ""
     olshem: Olshem = field(default_factory=Olshem)
+    belgiler: dict[str, int] = field(default_factory=dict)
 
     def json_qatar(self) -> str:
         d = asdict(self)
         d["olshem"] = {k: v for k, v in d["olshem"].items() if v is not None}
+        if not d["belgiler"]:
+            d.pop("belgiler")
         return json.dumps(d, ensure_ascii=False)
 
 
@@ -174,6 +203,151 @@ def qorytu(
     ]
     natije.sort(key=lambda q: (q.ortasha_jauap is None, -(q.ortasha_jauap or 0)))
     return natije
+
+
+@dataclass
+class Bolzham:
+    """Өз тарихыңнан шыққан күтілетін диапазон.
+
+    Болашақты айтпайды. Тек «осы формуламен жазған посттарың қандай
+    нәтиже берген» дегенді көрсетеді, үлгі санымен бірге.
+    """
+
+    formula: str
+    ulgi: int
+    tomen: float
+    mediana: float
+    jogary: float
+    senimdi: bool
+
+    def __str__(self) -> str:
+        negiz = (
+            f"{self.formula} форматындағы {self.ulgi} постың: жауап үлесі "
+            f"{self.tomen:.2%}–{self.jogary:.2%}, медианасы {self.mediana:.2%}."
+        )
+        if not self.senimdi:
+            return (
+                negiz
+                + f"\n⚠ Үлгі {EN_AZ_ULGI}-тен аз. Бұл — сан, болжам емес: "
+                "осыдан қорытынды жасауға болмайды."
+            )
+        return negiz + "\nБұл — өткен нәтиже, кепілдік емес."
+
+
+def bolzham(
+    formula: str, jazbalar: Optional[list[Jazba]] = None, jol: Optional[Path] = None
+) -> Optional[Bolzham]:
+    """Формула бойынша күтілетін диапазонды қайтарады.
+
+    Диапазон — квартильдер (25%–75%), яғни «әдеттегі» аралық. Ең жақсы
+    және ең нашар нәтиже әдейі шетте қалдырылады: шағын аудиторияда бір
+    вирусты пост диапазонды мағынасыз кеңейтеді.
+
+    Өлшенген пост мүлдем болмаса — None.
+    """
+    jazbalar = oqy(jol) if jazbalar is None else jazbalar
+    uleser = sorted(
+        u for j in jazbalar
+        if j.formula == formula and (u := j.olshem.jauap_ulesi()) is not None
+    )
+    if not uleser:
+        return None
+
+    if len(uleser) >= 4:
+        tomen, jogary = (
+            statistics.quantiles(uleser, n=4)[0],
+            statistics.quantiles(uleser, n=4)[2],
+        )
+    else:
+        tomen, jogary = uleser[0], uleser[-1]
+
+    return Bolzham(
+        formula=formula,
+        ulgi=len(uleser),
+        tomen=tomen,
+        mediana=statistics.median(uleser),
+        jogary=jogary,
+        senimdi=len(uleser) >= EN_AZ_ULGI,
+    )
+
+
+# Белгі бойынша айырма осыдан аз болса, шуыл деп саналады.
+# `references/olshem.md`: тек ~20%-дан асқан айырмаға сену керек.
+AIYRMA_SHEGI = 0.20
+
+
+@dataclass
+class Tauekel:
+    belgi: str
+    draft_mani: int
+    jaqsy_mediana: float
+    nashar_mediana: float
+
+    def __str__(self) -> str:
+        atau = {
+            "tanba": "ұзындығы",
+            "bas_soilem_soz": "бірінші сөйлемнің сөз саны",
+            "hashtag": "хэштег саны",
+            "siltem_bas_jolda": "бірінші жолдағы сілтеме",
+            "san_bar": "нақты сан",
+        }.get(self.belgi, self.belgi)
+        return (
+            f"{atau}: бұл драфтта {self.draft_mani}. "
+            f"Сенің нашар жүрген посттарыңда медианасы {self.nashar_mediana:.0f}, "
+            f"жақсы жүргендерінде {self.jaqsy_mediana:.0f}."
+        )
+
+
+def tauekel(
+    mati: str, jazbalar: Optional[list[Jazba]] = None, jol: Optional[Path] = None
+) -> tuple[list[Tauekel], str]:
+    """Драфтты өз тарихыңның нашар жүрген посттарымен салыстырады.
+
+    Қалай істейді: өлшенген посттарды жауап үлесі бойынша екіге бөледі,
+    әр белгінің медианасын салыстырады. Драфт нашар жақтың медианасына
+    жақын әрі екі жақтың айырмасы сезілерлік болса — белгі береді.
+
+    Бұл — БАҚЫЛАУ, болжам емес. Себебін көрсетпейді: белгі мен нәтиженің
+    арасында себеп байланысы бар-жоғын журнал біле алмайды.
+
+    Returns:
+        (табылған белгілер, түсіндірме жол)
+    """
+    jazbalar = oqy(jol) if jazbalar is None else jazbalar
+    olshengender = [
+        j for j in jazbalar
+        if j.olshem.jauap_ulesi() is not None and j.belgiler
+    ]
+    if len(olshengender) < EN_AZ_ULGI:
+        return [], (
+            f"Салыстыруға дерек жеткіліксіз: белгісі жазылған, өлшенген пост "
+            f"{len(olshengender)}, ең азы {EN_AZ_ULGI} керек. Тағы жаз."
+        )
+
+    olshengender.sort(key=lambda j: j.olshem.jauap_ulesi() or 0)
+    jarty = len(olshengender) // 2
+    nashar, jaqsy = olshengender[:jarty], olshengender[-jarty:]
+    draft = belgiler_al(mati)
+
+    tabylgan: list[Tauekel] = []
+    for belgi, draft_mani in draft.items():
+        n = [j.belgiler[belgi] for j in nashar if belgi in j.belgiler]
+        g = [j.belgiler[belgi] for j in jaqsy if belgi in j.belgiler]
+        if not n or not g:
+            continue
+        nm, gm = statistics.median(n), statistics.median(g)
+        auqym = max(abs(nm), abs(gm), 1)
+        if abs(nm - gm) / auqym < AIYRMA_SHEGI:
+            continue  # екі жақ ұқсас — бұл белгі ештеңе айтпайды
+        if abs(draft_mani - nm) < abs(draft_mani - gm):
+            tabylgan.append(Tauekel(belgi, draft_mani, gm, nm))
+
+    izah = (
+        f"Салыстыру негізі: {len(olshengender)} өлшенген пост "
+        f"({jarty} нашар, {jarty} жақсы). Бұл — корреляция, себеп емес: "
+        "белгі мен нәтиженің байланысы кездейсоқ та болуы мүмкін."
+    )
+    return tabylgan, izah
 
 
 def esep(jol: Optional[Path] = None) -> str:

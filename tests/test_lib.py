@@ -1,4 +1,5 @@
 """lib/ модульдерінің тесттері. Сыртқы тәуелділік жоқ, unittest қана."""
+import json
 import pathlib
 import sys
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from lib import (audit, emle, jariyalau, jurnal, kalka, maquldau, profil,
-                 translit, undestik, url_parser)
+                 threads_api, translit, undestik, url_parser)
 
 
 class GomoglifTest(unittest.TestCase):
@@ -502,6 +503,280 @@ class AuditProfilTest(unittest.TestCase):
     def test_belgi_profilsiz_de_esepte_korinedi(self):
         esep = str(audit.tolyq("Сен қалайсың? Сізге не керек?", profil=None))
         self.assertIn("регистр", esep)
+
+
+class BolzhamTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.jol = pathlib.Path(tempfile.mkdtemp()) / "j.jsonl"
+
+    def _jaz(self, formula, jauap, korsetilim=1000, mati="сынақ"):
+        jurnal.jaz(
+            jurnal.Jazba(
+                kuni="2026-09-01", formula=formula, maqsat="jauap",
+                mati_bas=mati[:80],
+                olshem=jurnal.Olshem(korsetilim=korsetilim, jauap=jauap),
+                belgiler=jurnal.belgiler_al(mati),
+            ),
+            self.jol,
+        )
+
+    def test_derek_joq_bolsa_none(self):
+        self.assertIsNone(jurnal.bolzham("Q3", jol=self.jol))
+
+    def test_diapazon_qaitarylady(self):
+        for j in (10, 20, 30, 40, 50, 60):
+            self._jaz("Q3", j)
+        b = jurnal.bolzham("Q3", jol=self.jol)
+        self.assertEqual(b.ulgi, 6)
+        self.assertLess(b.tomen, b.mediana)
+        self.assertLess(b.mediana, b.jogary)
+        self.assertTrue(b.senimdi)
+
+    def test_az_ulgi_senimsiz(self):
+        self._jaz("Q3", 10)
+        self.assertFalse(jurnal.bolzham("Q3", jol=self.jol).senimdi)
+
+    def test_az_ulgide_eskertu_matinde_bar(self):
+        self._jaz("Q3", 10)
+        self.assertIn("болжам емес", str(jurnal.bolzham("Q3", jol=self.jol)))
+
+    def test_kvartil_shetki_manderdi_tastaidy(self):
+        # Бір вирусты пост диапазонды мағынасыз кеңейтпеуі керек.
+        for j in (10, 11, 12, 13):
+            self._jaz("Q3", j)
+        self._jaz("Q3", 900)  # вирусты
+        b = jurnal.bolzham("Q3", jol=self.jol)
+        self.assertLess(b.jogary, 0.5)
+
+    def test_basqa_formula_aralaspaidy(self):
+        self._jaz("Q3", 10)
+        self._jaz("Q2", 90)
+        self.assertEqual(jurnal.bolzham("Q3", jol=self.jol).ulgi, 1)
+
+
+class BelgilerTest(unittest.TestCase):
+    def test_negizgi_belgiler(self):
+        b = jurnal.belgiler_al("Кеше 3 фича шығардық. Жақсы.\nhttps://x.kz #стартап")
+        self.assertEqual(b["hashtag"], 1)
+        self.assertEqual(b["san_bar"], 1)
+        self.assertEqual(b["siltem_bas_jolda"], 0)
+        self.assertEqual(b["bas_soilem_soz"], 4)
+
+    def test_siltem_bas_jolda(self):
+        self.assertEqual(
+            jurnal.belgiler_al("https://x.kz міне")["siltem_bas_jolda"], 1
+        )
+
+    def test_bos_mati(self):
+        self.assertEqual(jurnal.belgiler_al("")["tanba"], 0)
+
+
+class TauekelTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.jol = pathlib.Path(tempfile.mkdtemp()) / "j.jsonl"
+
+    def _jaz(self, jauap, mati):
+        jurnal.jaz(
+            jurnal.Jazba(
+                kuni="2026-09-01", formula="Q3", maqsat="jauap", mati_bas=mati[:80],
+                olshem=jurnal.Olshem(korsetilim=1000, jauap=jauap),
+                belgiler=jurnal.belgiler_al(mati),
+            ),
+            self.jol,
+        )
+
+    def _derek(self):
+        for j, m in ((30, "Қысқа."), (28, "Тағы қысқа."), (26, "Тағы да қысқа.")):
+            self._jaz(j, m)
+        for j in (6, 5, 4):
+            self._jaz(j, "Ұзын " * 60)
+
+    def test_derek_az_bolsa_belgi_bermeidi(self):
+        self._jaz(10, "сынақ")
+        tabylgan, izah = jurnal.tauekel("сынақ", jol=self.jol)
+        self.assertEqual(tabylgan, [])
+        self.assertIn("жеткіліксіз", izah)
+
+    def test_nashar_draft_belgilenedi(self):
+        self._derek()
+        tabylgan, _ = jurnal.tauekel("Ұзын " * 60, jol=self.jol)
+        self.assertTrue(tabylgan)
+        self.assertIn("tanba", [t.belgi for t in tabylgan])
+
+    def test_jaqsy_draft_belgilenbeidi(self):
+        self._derek()
+        tabylgan, _ = jurnal.tauekel("Қысқа.", jol=self.jol)
+        self.assertEqual(tabylgan, [])
+
+    def test_izah_ulgi_sanyn_ataidy(self):
+        self._derek()
+        _, izah = jurnal.tauekel("Ұзын " * 60, jol=self.jol)
+        self.assertIn("6 өлшенген пост", izah)
+        self.assertIn("корреляция", izah)
+
+
+def _jasandy_ashushy(jauaptar):
+    """Тестке арналған HTTP алмастырғышы: URL үлгісі → JSON жауабы."""
+    def ashushy(url, derek, kutu):
+        for bolik, jauap in jauaptar.items():
+            if bolik in url:
+                return json.dumps(jauap)
+        raise AssertionError(f"күтілмеген URL: {url}")
+    return ashushy
+
+
+class ThreadsApiTest(unittest.TestCase):
+    """Тірі API шақырылмайды — HTTP қабаты алмастырылады."""
+
+    def test_tokensiz_qate(self):
+        import os
+        eski = os.environ.pop("THREADS_TOKEN", None)
+        try:
+            with self.assertRaises(threads_api.ThreadsQate):
+                threads_api.ThreadsApi(token=None,
+                                       ashushy=_jasandy_ashushy({}))
+        finally:
+            if eski:
+                os.environ["THREADS_TOKEN"] = eski
+
+    def test_posttar_taldanady(self):
+        api = threads_api.ThreadsApi("t", ashushy=_jasandy_ashushy({
+            "me/threads": {"data": [
+                {"id": "1", "text": "сәлем", "timestamp": "2026-09-01T10:00:00+0000",
+                 "permalink": "https://www.threads.com/@a/post/X"},
+            ]}
+        }))
+        (p,) = api.posttar()
+        self.assertEqual(p.id, "1")
+        self.assertEqual(p.kuni, "2026-09-01")
+
+    def test_olshem_values_pishimi(self):
+        api = threads_api.ThreadsApi("t", ashushy=_jasandy_ashushy({
+            "insights": {"data": [{"name": "views", "values": [{"value": 1200}]},
+                                  {"name": "replies", "values": [{"value": 14}]}]}
+        }))
+        o = api.olshem("1")
+        self.assertEqual(o.korsetilim, 1200)
+        self.assertEqual(o.jauap, 14)
+
+    def test_olshem_total_value_pishimi(self):
+        api = threads_api.ThreadsApi("t", ashushy=_jasandy_ashushy({
+            "insights": {"data": [{"name": "views", "total_value": {"value": 900}},
+                                  {"name": "likes", "total_value": {"value": 42}}]}
+        }))
+        o = api.olshem("1")
+        self.assertEqual(o.korsetilim, 900)
+        self.assertEqual(o.laik, 42)
+
+    def test_belgisiz_metrika_otkiziledi(self):
+        o = threads_api._olshemdi_talda([{"name": "shares", "values": [{"value": 5}]}])
+        self.assertFalse(o.toly)
+
+    def test_api_qatesi_koteriledi(self):
+        api = threads_api.ThreadsApi("t", ashushy=_jasandy_ashushy({
+            "me/threads": {"error": {"message": "Invalid token", "code": 190}}
+        }))
+        with self.assertRaises(threads_api.ThreadsQate) as e:
+            api.posttar()
+        self.assertIn("Invalid token", str(e.exception))
+
+    def test_jaria_eki_qadam(self):
+        shaqyrular = []
+
+        def ashushy(url, derek, kutu):
+            shaqyrular.append(url)
+            if "threads_publish" in url:
+                return json.dumps({"id": "post-99"})
+            return json.dumps({"id": "konteiner-1"})
+
+        api = threads_api.ThreadsApi("t", ashushy=ashushy)
+        self.assertEqual(api.jaria("сәлем"), "post-99")
+        self.assertEqual(len(shaqyrular), 2)
+        self.assertIn("threads_publish", shaqyrular[1])
+
+    def test_token_jazu_men_oqu(self):
+        import tempfile
+        jol = pathlib.Path(tempfile.mkdtemp()) / "t.json"
+        threads_api.token_jaz("abc123", jol)
+        import os
+        eski = os.environ.pop("THREADS_TOKEN", None)
+        try:
+            self.assertEqual(threads_api.token_oqy(jol), "abc123")
+        finally:
+            if eski:
+                os.environ["THREADS_TOKEN"] = eski
+
+    def test_jurnaldy_janartu(self):
+        import tempfile
+        jjol = pathlib.Path(tempfile.mkdtemp()) / "j.jsonl"
+        url = "https://www.threads.com/@a/post/X"
+        jurnal.jaz(jurnal.Jazba(kuni="2026-09-01", formula="Q3", maqsat="jauap",
+                                url=url), jjol)
+        api = threads_api.ThreadsApi("t", ashushy=_jasandy_ashushy({
+            "me/threads?": {"data": [{"id": "1", "permalink": url}]},
+            "insights": {"data": [{"name": "views", "values": [{"value": 500}]},
+                                  {"name": "replies", "values": [{"value": 10}]}]},
+        }))
+        janartylgan, baylanyspagan = threads_api.olshemderdi_janart(api, jjol)
+        self.assertEqual((janartylgan, baylanyspagan), (1, 0))
+        (j,) = jurnal.oqy(jjol)
+        self.assertEqual(j.olshem.korsetilim, 500)
+
+
+class AvtoJariyalauTest(unittest.TestCase):
+    def setUp(self):
+        import os
+        self.eski = {k: os.environ.get(k) for k in ("THREADS_AVTO", "THREADS_POSTER")}
+        os.environ["THREADS_AVTO"] = "1"
+        os.environ["THREADS_POSTER"] = "true"
+
+    def tearDown(self):
+        import os
+        for k, v in self.eski.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_taza_draft_jariyalanady(self):
+        esep = audit.tolyq("Кеше фича шығардық.", profil=None)
+        self.assertTrue(jariyalau.avto_jariyala("post", "Кеше фича шығардық.", esep)["avto"])
+
+    def test_buzyq_draft_toqtatylady(self):
+        esep = audit.tolyq("Бiз шығардық. #а #б", profil=None)
+        r = jariyalau.avto_jariyala("post", "Бiз шығардық. #а #б", esep)
+        self.assertFalse(r["avto"])
+        self.assertIn("Тексеруден өтпеді", r["sebep"])
+
+    def test_jauap_avtomatty_jariyalanbaidy(self):
+        esep = audit.tolyq("Жақсы ой.", profil=None)
+        r = jariyalau.avto_jariyala("jauap", "Жақсы ой.", esep)
+        self.assertFalse(r["avto"])
+
+    def test_avto_oshirulgende_toqtaidy(self):
+        import os
+        os.environ.pop("THREADS_AVTO")
+        esep = audit.tolyq("Кеше фича шығардық.", profil=None)
+        r = jariyalau.avto_jariyala("post", "Кеше фича шығардық.", esep)
+        self.assertFalse(r["avto"])
+        self.assertIn("қосылмаған", r["sebep"])
+
+    def test_toqtagan_jagdaida_qoldan_bloq_beriledi(self):
+        esep = audit.tolyq("Бiз шығардық.", profil=None)
+        r = jariyalau.avto_jariyala("post", "Бiз шығардық.", esep)
+        self.assertIn("habar", r)
+        self.assertEqual(r["qabat"], "qoldan")
+
+    def test_toqtagan_draft_backend_arqyly_jarialanbaidy(self):
+        """Ең маңызды тексеру: бас тартылған драфт ЕШҚАЙДА кетпеуі керек."""
+        import os
+        izder = pathlib.Path(__import__("tempfile").mkdtemp()) / "iz.txt"
+        os.environ["THREADS_POSTER"] = f"tee {izder}"
+        esep = audit.tolyq("Бiз шығардық. #а #б", profil=None)
+        jariyalau.avto_jariyala("post", "Бiз шығардық. #а #б", esep)
+        self.assertFalse(izder.exists(), "бұзық драфт backend-ке жіберілді")
 
 
 if __name__ == "__main__":

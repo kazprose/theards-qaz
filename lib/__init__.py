@@ -11,6 +11,7 @@
     audit      — emle + kalka + undestik біріктірілген тексеру
     jurnal     — пост журналы: не жарияланды, не болды
     profil     — дауыс профилі: кімсің, аудиторияң кім, қалай сөйлейсің
+    threads_api — Threads-тің ресми Graph API клиенті
 
 Импорт жалқау (PEP 562): `python3 -m lib.emle` шақырғанда пакет ішкі
 модульдерді алдын ала жүктемейді, сондықтан runpy ескертуі шықпайды.
@@ -52,6 +53,16 @@ _KARTA: dict[str, tuple[str, str]] = {
     "jurnal_oqy": ("jurnal", "oqy"),
     "jurnal_esep": ("jurnal", "esep"),
     "jurnal_qorytu": ("jurnal", "qorytu"),
+    "bolzham": ("jurnal", "bolzham"),
+    "tauekel": ("jurnal", "tauekel"),
+    "belgiler_al": ("jurnal", "belgiler_al"),
+    "ThreadsApi": ("threads_api", "ThreadsApi"),
+    "ThreadsQate": ("threads_api", "ThreadsQate"),
+    "token_oqy": ("threads_api", "token_oqy"),
+    "token_jaz": ("threads_api", "token_jaz"),
+    "olshemderdi_janart": ("threads_api", "olshemderdi_janart"),
+    "avto_jariyala": ("jariyalau", "avto_jariyala"),
+    "avto_rejim": ("jariyalau", "avto_rejim"),
 }
 
 __all__ = list(_KARTA)
@@ -76,17 +87,19 @@ if TYPE_CHECKING:  # тек редактор мен тип тексергішк�
     from .emle import Belgi, EmleEsebi
     from .emle import tekseru as emle_tekseru
     from .emle import tuzetu as gomoglif_tuzetu
-    from .jariyalau import jariyala, qabat, qoldan_habar
+    from .jariyalau import avto_jariyala, avto_rejim, jariyala, qabat, qoldan_habar
     from .jurnal import Jazba, Olshem
     from .jurnal import esep as jurnal_esep
     from .jurnal import jaz as jurnal_jaz
     from .jurnal import oqy as jurnal_oqy
-    from .jurnal import qorytu as jurnal_qorytu
+    from .jurnal import belgiler_al, bolzham, qorytu as jurnal_qorytu, tauekel
     from .profil import Profil, registr_tabu
     from .profil import jaz as profil_jaz
     from .profil import oqy as profil_oqy
     from .profil import saikestik as profil_saikestik
     from .profil import ulgi as profil_ulgi
+    from .threads_api import (ThreadsApi, ThreadsQate, olshemderdi_janart,
+                              token_jaz, token_oqy)
     from .kalka import KalkaEsebi, Tabylym
     from .kalka import tekseru as kalka_tekseru
     from .maquldau import kartochka
