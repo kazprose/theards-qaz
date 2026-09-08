@@ -1,0 +1,25 @@
+{
+  "name": "threads-qazaqsha",
+  "metadata": {
+    "description": "Қазақ тіліндегі Threads контентіне арналған шеберліктер жинағы. Тіл тазалығы, әліпби, кодты ауыстыру және AI іздері — төрт мәселеге құрылған."
+  },
+  "plugins": [
+    {
+      "name": "threads-qazaqsha",
+      "source": "./",
+      "description": "Қазақша Threads контенті: пост пен тред жазу, калька мен кеңсе тілінен тазалау, гомоглиф түзету, hook талдау, жауап, апталық жоспар, бейімдеу. Ешқандай сыртқы қызметке байланбаған, әдепкі күйде драфт қана береді.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": [
+        "threads",
+        "kazakh",
+        "qazaqsha",
+        "казахский",
+        "content-creation",
+        "claude-skills",
+        "localization"
+      ],
+      "category": "productivity"
+    }
+  ]
+}
