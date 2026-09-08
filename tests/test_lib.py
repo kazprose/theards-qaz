@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lib import (audit, emle, jariyalau, jurnal, kalka, maquldau,
+from lib import (audit, emle, jariyalau, jurnal, kalka, maquldau, profil,
                  translit, undestik, url_parser)
 
 
@@ -340,6 +340,168 @@ class EvalQuramTest(unittest.TestCase):
         for buma in sorted(self.TUBIR.glob("skills/*/")):
             with self.subTest(skild=buma.name):
                 self.assertTrue((buma / "evals" / "evals.json").exists())
+
+
+TOLY_PROFIL = """# Дауыс профилі
+
+## Кім
+
+Қазақша оқу қосымшасын жасаймын.
+
+## Аудитория
+
+Мектеп мұғалімдері.
+
+## Регистр
+
+- Сен/сіз: сен
+- Кодты ауыстыру: шамалы
+
+## Бағаналар
+
+- Жұмыс: нақты сандар
+- Тіл: қазақ тілі туралы байқаулар
+
+## Айтпайтын сөздер
+
+- инновациялық
+- синергия
+
+## Мысалдар
+
+Интерфейсті қазақшаладым.
+"""
+
+
+class RegistrTabuTest(unittest.TestCase):
+    """«сенім», «сенбі», «мәнсіз» деген сөздер жалған белгі бермеуі керек."""
+
+    def test_sen_tabylady(self):
+        self.assertEqual(profil.registr_tabu("Сен қалай ойлайсың?"), (2, 0))
+
+    def test_siz_tabylady(self):
+        sen, siz = profil.registr_tabu("Сіздің атыңыз кім?")
+        self.assertEqual(sen, 0)
+        self.assertGreater(siz, 0)
+
+    def test_sen_bastalatyn_sozder_jalgan_belgi_bermeidi(self):
+        for soz in ["Сеніммен айтам", "Сенбіде кездесеміз", "Сенімді шешім",
+                    "Сенім деген осы"]:
+            with self.subTest(soz=soz):
+                self.assertEqual(profil.registr_tabu(soz), (0, 0), soz)
+
+    def test_siz_jurnagy_jalgan_belgi_bermeidi(self):
+        # «-сыз/-сіз» болымсыздық жұрнағы регистр белгісі емес.
+        for soz in ["Мәнсіз әңгіме", "Ақшасыз қалдық", "Себепсіз күлкі"]:
+            with self.subTest(soz=soz):
+                self.assertEqual(profil.registr_tabu(soz), (0, 0), soz)
+
+    def test_etistik_jalgauy_tabylady(self):
+        sen, _ = profil.registr_tabu("Мұны қалай көресің?")
+        self.assertEqual(sen, 1)
+
+
+class ProfilOquTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.buma = pathlib.Path(tempfile.mkdtemp())
+
+    def _jaz(self, mazmun):
+        jol = self.buma / "p.md"
+        profil.jaz(mazmun, jol)
+        return jol
+
+    def test_fail_joq_bolsa_none(self):
+        self.assertIsNone(profil.oqy(self.buma / "joq.md"))
+
+    def test_toltyrylgan_profil_oqylady(self):
+        p = profil.oqy(self._jaz(TOLY_PROFIL))
+        self.assertEqual(p.registr, "сен")
+        self.assertEqual(p.kod_auystyru, "шамалы")
+        self.assertEqual(p.audytoriya, "Мектеп мұғалімдері.")
+        self.assertEqual(len(p.baganalar), 2)
+        self.assertIn("инновациялық", p.aitpaityn_sozder)
+        self.assertTrue(p.toly)
+
+    def test_toltyrylmagan_ulgi_bos_dep_tanylady(self):
+        p = profil.oqy(self._jaz(profil.ulgi()))
+        self.assertFalse(p.toly)
+        self.assertIn("Регистр (сен/сіз)", p.bos_orindar)
+
+    def test_ulgideg_tusiniktemeler_tizimge_kirmeidi(self):
+        p = profil.oqy(self._jaz(profil.ulgi()))
+        self.assertEqual(p.baganalar, [])
+        self.assertEqual(p.aitpaityn_sozder, [])
+
+    def test_jaramsyz_registr_bos_qalady(self):
+        p = profil.oqy(self._jaz(
+            TOLY_PROFIL.replace("Сен/сіз: сен", "Сен/сіз: әрқалай")))
+        self.assertEqual(p.registr, "")
+
+
+class SaikestikTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        jol = pathlib.Path(tempfile.mkdtemp()) / "p.md"
+        profil.jaz(TOLY_PROFIL, jol)
+        self.p = profil.oqy(jol)
+
+    def test_registr_aralasqany_qate(self):
+        (b,) = profil.saikestik("Сен қалай ойлайсың? Сізге не керек?", self.p)
+        self.assertEqual(b.turi, "регистр")
+        self.assertEqual(b.dengei, "qate")
+
+    def test_aralasu_profilsiz_de_ustalady(self):
+        (b,) = profil.saikestik("Сен қалайсың? Сізге не керек?", None)
+        self.assertEqual(b.dengei, "qate")
+
+    def test_profilge_qaishy_registr_eskertu(self):
+        (b,) = profil.saikestik("Сізге бір нәрсе айтайын, қараңыз.", self.p)
+        self.assertEqual(b.dengei, "eskertu")
+
+    def test_profilge_sai_matin_taza(self):
+        self.assertEqual(profil.saikestik("Сен қалай ойлайсың?", self.p), [])
+
+    def test_tyiym_salyngan_soz_tabylady(self):
+        (b,) = profil.saikestik("Біздің инновациялық шешім", self.p)
+        self.assertEqual(b.turi, "тыйым")
+
+    def test_tyiym_jalgauymen_de_tabylady(self):
+        # «инновациялық» → «инновациялықтан» да ұсталуы керек
+        self.assertTrue(profil.saikestik("инновациялықтан бас тарттық", self.p))
+
+    def test_profilsiz_tyiym_tekserilmeidi(self):
+        self.assertEqual(profil.saikestik("Біздің инновациялық шешім", None), [])
+
+
+class AuditProfilTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.jol = pathlib.Path(tempfile.mkdtemp()) / "p.md"
+        profil.jaz(TOLY_PROFIL, self.jol)
+
+    def test_profil_joly_arqyly_oqylady(self):
+        r = audit.tolyq("Біздің инновациялық шешім", profil_joly=self.jol)
+        self.assertTrue(r.profil_bar)
+        self.assertTrue(r.profil)
+
+    def test_profil_none_bolsa_tekserilmeidi(self):
+        r = audit.tolyq("Біздің инновациялық шешім", profil=None)
+        self.assertFalse(r.profil_bar)
+        self.assertEqual(r.profil, [])
+
+    def test_registr_aralasuy_jiberuge_kedergi(self):
+        r = audit.tolyq("Сен қалайсың? Сізге не керек?", profil=None)
+        self.assertFalse(r.joneltuge_dayin)
+
+    def test_tyiym_jiberuge_kedergi_emes(self):
+        # Тыйым — ескерту деңгейі, қатты қате емес.
+        r = audit.tolyq("Біздің инновациялық шешім", profil_joly=self.jol)
+        self.assertTrue(r.joneltuge_dayin)
+
+    def test_belgi_profilsiz_de_esepte_korinedi(self):
+        esep = str(audit.tolyq("Сен қалайсың? Сізге не керек?", profil=None))
+        self.assertIn("регистр", esep)
 
 
 if __name__ == "__main__":

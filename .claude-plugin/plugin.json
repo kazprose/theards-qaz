@@ -1,7 +1,7 @@
 {
   "name": "threads-qazaqsha",
-  "description": "Қазақ тіліндегі Threads контентіне арналған 8 шеберлік: пост пен тред жазу, орысша кальканы тазалау, гомоглиф пен емлені түзету, hook талдау, жауап жазу, апталық жоспар, басқа платформадан бейімдеу, нәтижені өлшеу. 7 Claude Code skills for Kazakh-language Threads content.",
-  "version": "0.2.0",
+  "description": "Қазақ тіліндегі Threads контентіне арналған 9 шеберлік: пост пен тред жазу, орысша кальканы тазалау, гомоглиф пен емлені түзету, hook талдау, жауап жазу, апталық жоспар, басқа платформадан бейімдеу, нәтижені өлшеу, дауыс профилі. 7 Claude Code skills for Kazakh-language Threads content.",
+  "version": "0.3.0",
   "license": "MIT",
   "keywords": [
     "threads",
@@ -15,6 +15,7 @@
     "localization",
     "homoglyph",
     "orthography",
-    "analytics"
+    "analytics",
+    "brand-voice"
   ]
 }

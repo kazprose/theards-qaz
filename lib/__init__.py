@@ -10,6 +10,7 @@
     jariyalau  — қолмен / өзіндік жариялау қабаты
     audit      — emle + kalka + undestik біріктірілген тексеру
     jurnal     — пост журналы: не жарияланды, не болды
+    profil     — дауыс профилі: кімсің, аудиторияң кім, қалай сөйлейсің
 
 Импорт жалқау (PEP 562): `python3 -m lib.emle` шақырғанда пакет ішкі
 модульдерді алдын ала жүктемейді, сондықтан runpy ескертуі шықпайды.
@@ -39,6 +40,12 @@ _KARTA: dict[str, tuple[str, str]] = {
     "Undestik": ("undestik", "Undestik"),
     "tolyq": ("audit", "tolyq"),
     "ToliqEsep": ("audit", "ToliqEsep"),
+    "Profil": ("profil", "Profil"),
+    "profil_oqy": ("profil", "oqy"),
+    "profil_ulgi": ("profil", "ulgi"),
+    "profil_jaz": ("profil", "jaz"),
+    "profil_saikestik": ("profil", "saikestik"),
+    "registr_tabu": ("profil", "registr_tabu"),
     "Jazba": ("jurnal", "Jazba"),
     "Olshem": ("jurnal", "Olshem"),
     "jurnal_jaz": ("jurnal", "jaz"),
@@ -75,6 +82,11 @@ if TYPE_CHECKING:  # тек редактор мен тип тексергішк�
     from .jurnal import jaz as jurnal_jaz
     from .jurnal import oqy as jurnal_oqy
     from .jurnal import qorytu as jurnal_qorytu
+    from .profil import Profil, registr_tabu
+    from .profil import jaz as profil_jaz
+    from .profil import oqy as profil_oqy
+    from .profil import saikestik as profil_saikestik
+    from .profil import ulgi as profil_ulgi
     from .kalka import KalkaEsebi, Tabylym
     from .kalka import tekseru as kalka_tekseru
     from .maquldau import kartochka
