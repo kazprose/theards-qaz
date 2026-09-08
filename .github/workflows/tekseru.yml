@@ -1,0 +1,32 @@
+name: Тексеру
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tekseru:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Тесттер
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Markdown сілтемелері
+        run: python3 scripts/siltemelerdi_tekseru.py
+
+      - name: SKILL.md frontmatter
+        run: python3 scripts/frontmatter_tekseru.py
+
+      - name: Eval жинақтары
+        run: python3 scripts/eval_tekseru.py
