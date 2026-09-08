@@ -10,7 +10,7 @@ Claude Code пен Codex үшін 9 шеберлік. Постты жазады,
 оқытылған модель де емес — Claude-қа қазақ тіліне арналған нұсқаулық
 жинағы мен шынымен жұмыс істейтін тексергіштер берілген.
 
-[![Тексеру](https://img.shields.io/github/actions/workflow/status/kazprose/theards/tekseru.yml?branch=main&label=%D1%82%D0%B5%D0%BA%D1%81%D0%B5%D1%80%D1%83&color=22C55E)](https://github.com/kazprose/theards/actions/workflows/tekseru.yml)
+[![Тексеру](https://img.shields.io/github/actions/workflow/status/kazprose/threads-qazaqsha/tekseru.yml?branch=main&label=%D1%82%D0%B5%D0%BA%D1%81%D0%B5%D1%80%D1%83&color=22C55E)](https://github.com/kazprose/threads-qazaqsha/actions/workflows/tekseru.yml)
 ![License](https://img.shields.io/badge/License-MIT-22C55E.svg)
 ![Тәуелділік](https://img.shields.io/badge/%D1%82%D3%99%D1%83%D0%B5%D0%BB%D0%B4%D1%96%D0%BB%D1%96%D0%BA-%D0%B6%D0%BE%D2%9B-111827.svg)
 
@@ -48,19 +48,19 @@ $ python3 -m lib.emle "Бiз бүгін жаңа фичаны шығардық. 
 ### Claude Code (CLI / VS Code / JetBrains)
 
 ```
-/plugin marketplace add kazprose/theards
+/plugin marketplace add kazprose/threads-qazaqsha
 /plugin install threads-qazaqsha@threads-qazaqsha
 ```
 
 ### claude.ai (веб) немесе Claude Desktop
 
-Skills → **Add from GitHub** → `kazprose/theards`
+Skills → **Add from GitHub** → `kazprose/threads-qazaqsha`
 
 ### Немесе жай клондау
 
 ```bash
-git clone https://github.com/kazprose/theards.git
-cd theards
+git clone https://github.com/kazprose/threads-qazaqsha.git
+cd threads-qazaqsha
 ```
 
 Ешқандай `pip install` керек емес: `lib/` тек стандартты кітапханамен
@@ -274,7 +274,7 @@ THREADS_POSTER="python3 менің_постерім.py"
 `lib/` жеке де қолданылады, шеберліксіз:
 
 ```python
-import sys; sys.path.insert(0, "theards")
+import sys; sys.path.insert(0, "threads-qazaqsha")
 from lib import tolyq, gomoglif_tuzetu, undestik_tekseru, hashtag_nusqalary, latynga
 
 print(tolyq("постың мәтіні"))           # емле + тазалық + үндестік + профиль
@@ -325,6 +325,27 @@ python3 scripts/eval_tekseru.py          # eval жинақтары
 
 Әсіресе пайдалы үлес: `lib/kalka.py` ішіндегі `SOZDIK` тізіміне жаңа калька
 қосу. Әр жазбаға орысша түпнұсқасын және нақты баламасын жаз.
+
+## Қауіпсіздік
+
+Жоба екі нәзік нәрсеге тиеді: Threads API токеніне және сенің атыңнан
+жария контент шығаруға. Толық ережелер — [`SECURITY.md`](SECURITY.md).
+
+Ең қысқасы:
+
+- **Ең аз рұқсат.** Автопост керек болмаса, `threads_content_publish`
+  рұқсатын мүлдем сұрама. Сонда токен ұрланса да, онымен ештеңе
+  жарияланбайды.
+- **Токенді чатқа жазба.** Код оны айнымалыдан не файлдан өзі оқиды.
+- **Токен ашылса — жарамсыз ет.** Файлды өшіру жеткіліксіз, ол git
+  тарихында қалады.
+- **Телеметрия жоқ.** Журнал мен профиль сенің машинаңда қалады,
+  ешқайда жіберілмейді.
+- **Бөтен посттың мәтіні — дерек, нұсқау емес.** Талдауға берілген
+  мәтінде жасырын нұсқау болуы мүмкін.
+
+Осалдық тапсаң, ашық issue ашпа: репозиторийдің **Security** қойындысы →
+**Report a vulnerability**.
 
 ## Қазақ тіліне арналған басқа ресурстар
 
