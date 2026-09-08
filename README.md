@@ -1,13 +1,18 @@
-# Қазақша Threads шеберліктері
+# Қазақша Threads жазбасын арнайы дайындықтан өткен ЖИ-ге тапсыр
 
-**Claude Code пен Codex үшін 9 шеберлік.** Қазақ тілінде Threads посттарын
-жазады, орысша калька мен кеңсе тілінен тазалайды, гомоглиф пен емлені
-түзетеді, апталық жоспар құрады.
+Claude Code пен Codex үшін 9 шеберлік. Постты жазады, орысша калька мен
+кеңсе тілінен тазалайды, көзге көрінбейтін гомоглиф пен емле қатесін
+табады, апталық жоспар құрады. Қаласаң — Threads-тің **ресми API-ы арқылы
+постты өзі жариялайды**, **статистикасын өзі тартады** және қай формат
+сенің аудиторияңда жүріп тұрғанын көрсетеді.
 
-Аударма емес: қазақ тіліне ғана тән төрт мәселеге құрылған.
+Аударма емес: қазақ тіліне ғана тән төрт мәселеге құрылған. Бөлек
+оқытылған модель де емес — Claude-қа қазақ тіліне арналған нұсқаулық
+жинағы мен шынымен жұмыс істейтін тексергіштер берілген.
 
-[![Тексеру](https://github.com/kazprose/theards/actions/workflows/tekseru.yml/badge.svg)](https://github.com/kazprose/theards/actions/workflows/tekseru.yml)
+[![Тексеру](https://img.shields.io/github/actions/workflow/status/kazprose/theards/tekseru.yml?branch=main&label=%D1%82%D0%B5%D0%BA%D1%81%D0%B5%D1%80%D1%83&color=22C55E)](https://github.com/kazprose/theards/actions/workflows/tekseru.yml)
 ![License](https://img.shields.io/badge/License-MIT-22C55E.svg)
+![Тәуелділік](https://img.shields.io/badge/%D1%82%D3%99%D1%83%D0%B5%D0%BB%D0%B4%D1%96%D0%BB%D1%96%D0%BA-%D0%B6%D0%BE%D2%9B-111827.svg)
 
 ---
 
