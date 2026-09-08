@@ -12,7 +12,7 @@ Claude Code пен Codex үшін 9 шеберлік. Постты жазады,
 оқытылған модель де емес — Claude-қа қазақ тіліне арналған нұсқаулық
 жинағы мен шынымен жұмыс істейтін тексергіштер берілген.
 
-[![Тексеру](https://img.shields.io/github/actions/workflow/status/kazprose/theards-qaz/tekseru.yml?branch=main&label=%D1%82%D0%B5%D0%BA%D1%81%D0%B5%D1%80%D1%83&color=22C55E)](https://github.com/kazprose/theards-qaz/actions/workflows/tekseru.yml)
+[![Тексеру](https://img.shields.io/github/actions/workflow/status/kazprose/threads-qaz/tekseru.yml?branch=main&label=%D1%82%D0%B5%D0%BA%D1%81%D0%B5%D1%80%D1%83&color=22C55E)](https://github.com/kazprose/threads-qaz/actions/workflows/tekseru.yml)
 ![License](https://img.shields.io/badge/License-MIT-22C55E.svg)
 ![Тәуелділік](https://img.shields.io/badge/%D1%82%D3%99%D1%83%D0%B5%D0%BB%D0%B4%D1%96%D0%BB%D1%96%D0%BA-%D0%B6%D0%BE%D2%9B-111827.svg)
 
@@ -50,19 +50,19 @@ $ python3 -m lib.emle "Бiз бүгін жаңа фичаны шығардық. 
 ### Claude Code (CLI / VS Code / JetBrains)
 
 ```
-/plugin marketplace add kazprose/theards-qaz
+/plugin marketplace add kazprose/threads-qaz
 /plugin install threads-qazaqsha@threads-qazaqsha
 ```
 
 ### claude.ai (веб) немесе Claude Desktop
 
-Skills → **Add from GitHub** → `kazprose/theards-qaz`
+Skills → **Add from GitHub** → `kazprose/threads-qaz`
 
 ### Немесе жай клондау
 
 ```bash
-git clone https://github.com/kazprose/theards-qaz.git
-cd theards-qaz
+git clone https://github.com/kazprose/threads-qaz.git
+cd threads-qaz
 ```
 
 Ешқандай `pip install` керек емес: `lib/` тек стандартты кітапханамен
@@ -276,7 +276,7 @@ THREADS_POSTER="python3 менің_постерім.py"
 `lib/` жеке де қолданылады, шеберліксіз:
 
 ```python
-import sys; sys.path.insert(0, "theards-qaz")
+import sys; sys.path.insert(0, "threads-qaz")
 from lib import tolyq, gomoglif_tuzetu, undestik_tekseru, hashtag_nusqalary, latynga
 
 print(tolyq("постың мәтіні"))           # емле + тазалық + үндестік + профиль

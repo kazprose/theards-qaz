@@ -11,7 +11,7 @@ Not a translation of an English bundle: built around four problems that are
 specific to Kazakh. No separately trained model either — Claude is given a
 Kazakh-specific knowledge base and checkers that actually run.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/kazprose/theards-qaz/tekseru.yml?branch=main&label=tests&color=22C55E)](https://github.com/kazprose/theards-qaz/actions/workflows/tekseru.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/kazprose/threads-qaz/tekseru.yml?branch=main&label=tests&color=22C55E)](https://github.com/kazprose/threads-qaz/actions/workflows/tekseru.yml)
 ![License](https://img.shields.io/badge/License-MIT-22C55E.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-111827.svg)
 
@@ -68,18 +68,18 @@ one. A dictionary teaching the wrong spelling.
 ## Install
 
 ```
-/plugin marketplace add kazprose/theards-qaz
+/plugin marketplace add kazprose/threads-qaz
 /plugin install threads-qazaqsha@threads-qazaqsha
 ```
 
 Or on claude.ai / Claude Desktop: **Skills → Add from GitHub →
-`kazprose/theards-qaz`**
+`kazprose/threads-qaz`**
 
 Or just clone it:
 
 ```bash
-git clone https://github.com/kazprose/theards-qaz.git
-cd theards-qaz
+git clone https://github.com/kazprose/threads-qaz.git
+cd threads-qaz
 ```
 
 No `pip install` needed — `lib/` uses only the standard library.
@@ -156,7 +156,7 @@ else's post, and hitting the wrong target is a real risk.
 `lib/` works without the skills:
 
 ```python
-import sys; sys.path.insert(0, "theards-qaz")
+import sys; sys.path.insert(0, "threads-qaz")
 from lib import tolyq, gomoglif_tuzetu, undestik_tekseru, latynga
 
 print(tolyq("post text"))               # spelling + purity + harmony + profile
