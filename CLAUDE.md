@@ -12,6 +12,7 @@ SKILL.md            түбірлік диспетчер: қай шеберлік
 skills/*/SKILL.md   жеке шеберліктер
 references/*.md     ортақ білім базасы, шеберліктер сілтеме жасайды
 lib/*.py            сыртқы тәуелділіксіз көмекші кітапхана
+skills/*/evals/     әр шеберліктің eval жинағы (evals.json)
 scripts/*.py        CI тексерулері
 tests/test_lib.py   unittest, сыртқы тәуелділіксіз
 ```
@@ -42,9 +43,33 @@ tests/test_lib.py   unittest, сыртқы тәуелділіксіз
 python3 -m unittest discover -s tests
 python3 scripts/siltemelerdi_tekseru.py
 python3 scripts/frontmatter_tekseru.py
+python3 scripts/eval_tekseru.py
 ```
 
-Үшеуі де CI-да жүреді.
+Төртеуі де CI-да жүреді.
+
+## Жаңа шеберлік қосқанда
+
+Әр шеберлікте `evals/evals.json` болуы міндетті. Пішімі:
+
+```json
+{
+  "skill": "бума-атымен-бірдей",
+  "version": "0.2.0",
+  "evals": [
+    {"name": "ascii_slug", "input": "пайдаланушы не жазады",
+     "expect": ["не күтіледі", "тағы не күтіледі"]}
+  ]
+}
+```
+
+Eval атауы тек ASCII болуы керек — бандлдың өзі кирилл мен латынның
+араласуын қате санайды, сондықтан өз файлдарында да ондай ат болмауы тиіс.
+`scripts/eval_tekseru.py` мұны CI-да тексереді.
+
+Ең пайдалы eval — шеберліктердің бір-бірімен шатаспауын тексеретіні
+(«постымды тексер» дегенде `threads-redaktor` па, `threads-emle` ме) және
+ұстанымды тексеретіні (сан ойдан шығармау, мақұлдаусыз жарияламау).
 
 ## Сөздікке жазба қосқанда
 

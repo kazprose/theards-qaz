@@ -27,3 +27,6 @@ jobs:
 
       - name: SKILL.md frontmatter
         run: python3 scripts/frontmatter_tekseru.py
+
+      - name: Eval жинақтары
+        run: python3 scripts/eval_tekseru.py

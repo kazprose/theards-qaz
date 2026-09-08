@@ -1,12 +1,13 @@
 """lib/ модульдерінің тесттері. Сыртқы тәуелділік жоқ, unittest қана."""
+import pathlib
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lib import (audit, emle, jariyalau, kalka, maquldau, translit,
-                 undestik, url_parser)
+from lib import (audit, emle, jariyalau, jurnal, kalka, maquldau,
+                 translit, undestik, url_parser)
 
 
 class GomoglifTest(unittest.TestCase):
@@ -239,6 +240,106 @@ class AuditUndestikTest(unittest.TestCase):
         # Үндестік — кеңес деңгейі, қатты қате емес.
         r = audit.tolyq("дедлайнге үлгермедік")
         self.assertTrue(r.joneltuge_dayin)
+
+
+class JurnalTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.jol = pathlib.Path(tempfile.mkdtemp()) / "j.jsonl"
+
+    def _jaz(self, formula, korsetilim=None, jauap=None, laik=None):
+        jurnal.jaz(
+            jurnal.Jazba(
+                kuni="2026-09-01",
+                formula=formula,
+                maqsat="jauap",
+                mati_bas="сынақ",
+                olshem=jurnal.Olshem(
+                    korsetilim=korsetilim, jauap=jauap, laik=laik
+                ),
+            ),
+            self.jol,
+        )
+
+    def test_bos_jurnal(self):
+        self.assertEqual(jurnal.oqy(self.jol), [])
+        self.assertIn("бос", jurnal.esep(self.jol))
+
+    def test_jazu_men_oqu_ainalymy(self):
+        self._jaz("Q3", 1000, 20, 50)
+        (j,) = jurnal.oqy(self.jol)
+        self.assertEqual(j.formula, "Q3")
+        self.assertEqual(j.olshem.korsetilim, 1000)
+        self.assertEqual(j.olshem.jauap, 20)
+
+    def test_olshemsiz_jazba_esepke_kirmeidi(self):
+        self._jaz("Q3")  # сан жоқ
+        (q,) = jurnal.qorytu(jol=self.jol)
+        self.assertEqual(q.sany, 1)
+        self.assertEqual(q.olshengen, 0)
+        self.assertIsNone(q.ortasha_jauap)
+
+    def test_jauap_ulesi_eseptelinedi(self):
+        self._jaz("Q3", 1000, 20, 50)
+        (q,) = jurnal.qorytu(jol=self.jol)
+        self.assertAlmostEqual(q.ortasha_jauap, 0.02)
+
+    def test_az_ulgi_senimsiz_dep_belgilenedi(self):
+        for _ in range(jurnal.EN_AZ_ULGI - 1):
+            self._jaz("Q3", 1000, 20, 50)
+        (q,) = jurnal.qorytu(jol=self.jol)
+        self.assertFalse(q.senimdi)
+
+    def test_jeterlik_ulgi_senimdi(self):
+        for _ in range(jurnal.EN_AZ_ULGI):
+            self._jaz("Q3", 1000, 20, 50)
+        (q,) = jurnal.qorytu(jol=self.jol)
+        self.assertTrue(q.senimdi)
+
+    def test_mediana_qoldanylady_ortasha_emes(self):
+        # Бір вирусты пост медиананы бұрмаламауы керек.
+        for _ in range(4):
+            self._jaz("Q3", 1000, 10)      # 1%
+        self._jaz("Q3", 1000, 500)          # 50% — вирусты
+        (q,) = jurnal.qorytu(jol=self.jol)
+        self.assertAlmostEqual(q.ortasha_jauap, 0.01)
+
+    def test_jauap_ulesi_boiynsha_rettelinedi(self):
+        for _ in range(2):
+            self._jaz("Q2", 1000, 5)
+            self._jaz("Q3", 1000, 30)
+        qorytyndy = jurnal.qorytu(jol=self.jol)
+        self.assertEqual(qorytyndy[0].formula, "Q3")
+
+    def test_korsetilimsiz_ules_eseptelmeidi(self):
+        o = jurnal.Olshem(jauap=10)  # көрсетілім жоқ
+        self.assertFalse(o.toly)
+        self.assertIsNone(o.jauap_ulesi())
+
+    def test_esep_az_ulgide_eskertedi(self):
+        self._jaz("Q3", 1000, 20)
+        self.assertIn("ҚОРЫТЫНДЫ", jurnal.esep(self.jol))
+
+
+class EvalQuramTest(unittest.TestCase):
+    """Әр шеберліктің eval жинағы бар әрі дұрыс құрылған ба."""
+
+    TUBIR = pathlib.Path(__file__).resolve().parents[1]
+
+    def test_eval_tekserushi_otedi(self):
+        import subprocess
+
+        r = subprocess.run(
+            [sys.executable, str(self.TUBIR / "scripts" / "eval_tekseru.py")],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_ar_skildte_eval_bar(self):
+        for buma in sorted(self.TUBIR.glob("skills/*/")):
+            with self.subTest(skild=buma.name):
+                self.assertTrue((buma / "evals" / "evals.json").exists())
 
 
 if __name__ == "__main__":

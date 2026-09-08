@@ -8,7 +8,8 @@
     maquldau   — драфтты мақұлдау карточкасы
     undestik   — дауысты үндестігі (қосымша дұрыс жалғанған ба)
     jariyalau  — қолмен / өзіндік жариялау қабаты
-    audit      — emle + kalka біріктірілген толық тексеру
+    audit      — emle + kalka + undestik біріктірілген тексеру
+    jurnal     — пост журналы: не жарияланды, не болды
 
 Импорт жалқау (PEP 562): `python3 -m lib.emle` шақырғанда пакет ішкі
 модульдерді алдын ала жүктемейді, сондықтан runpy ескертуі шықпайды.
@@ -38,6 +39,12 @@ _KARTA: dict[str, tuple[str, str]] = {
     "Undestik": ("undestik", "Undestik"),
     "tolyq": ("audit", "tolyq"),
     "ToliqEsep": ("audit", "ToliqEsep"),
+    "Jazba": ("jurnal", "Jazba"),
+    "Olshem": ("jurnal", "Olshem"),
+    "jurnal_jaz": ("jurnal", "jaz"),
+    "jurnal_oqy": ("jurnal", "oqy"),
+    "jurnal_esep": ("jurnal", "esep"),
+    "jurnal_qorytu": ("jurnal", "qorytu"),
 }
 
 __all__ = list(_KARTA)
@@ -63,6 +70,11 @@ if TYPE_CHECKING:  # тек редактор мен тип тексергішк�
     from .emle import tekseru as emle_tekseru
     from .emle import tuzetu as gomoglif_tuzetu
     from .jariyalau import jariyala, qabat, qoldan_habar
+    from .jurnal import Jazba, Olshem
+    from .jurnal import esep as jurnal_esep
+    from .jurnal import jaz as jurnal_jaz
+    from .jurnal import oqy as jurnal_oqy
+    from .jurnal import qorytu as jurnal_qorytu
     from .kalka import KalkaEsebi, Tabylym
     from .kalka import tekseru as kalka_tekseru
     from .maquldau import kartochka
