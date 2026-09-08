@@ -1,6 +1,7 @@
 ---
 name: threads-beiimdeu
 description: Басқа платформадағы немесе басқа тілдегі контентті қазақша Threads постына бейімдеу: LinkedIn посты, X треді, блог, YouTube сценарийі, орысша не ағылшынша мәтін. Аударма емес, қайта жазу. Use when the user wants to repurpose content into Kazakh Threads, adapt a post from another platform, or turn a Russian/English text into a native Kazakh post. Адаптировать пост под Threads на казахском. Нөлден жазу үшін емес (ол threads-post-jazu).
+license: MIT
 ---
 
 # Бейімдеу: басқа платформа мен басқа тілден

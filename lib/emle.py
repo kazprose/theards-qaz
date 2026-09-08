@@ -42,6 +42,10 @@ HOMOGLYPHS = {
     "y": "у",
 }
 
+# Кері бағыт: кирилл әрпі латын сөзінің ішіне кіріп кетсе.
+# «Clаudе» (кирилл а мен е) — латын i-дегідей үнсіз қате, тек бағыты басқа.
+KERI_HOMOGLYPHS = {kirill: latyn for latyn, kirill in HOMOGLYPHS.items()}
+
 LATIN_LETTER = re.compile(r"[A-Za-z]")
 CYRILLIC_LETTER = re.compile(r"[Ѐ-ӿ]")
 WORD = re.compile(r"[\wЀ-ӿ]+", re.UNICODE)
@@ -107,49 +111,94 @@ def _kontekst(mati: str, orny: int, radius: int = 24) -> str:
     return f"…{uzindi}…" if bas > 0 or ayaq < len(mati) else uzindi
 
 
-def gomoglif_tabu(mati: str) -> list[Belgi]:
-    """Кирилл сөзінің ішіне кіріп кеткен латын әріптерін табады.
+def _talda_aralas(soz: str) -> tuple[str, str, list[str]] | None:
+    """Аралас сөзді талдап, қай бағытқа түзету керегін шешеді.
 
-    Тек АРАЛАС сөздерді ұстайды: таза латын сөзі (AI, Claude, startup) — заңды
-    кодты ауыстыру, оған тиіспейміз. Ал `бiр` (латын i) — үнсіз қате.
+    Қайтарады: (басым_жазу, түзетілген_сөз, ауысатын_таңбалар) немесе None.
+
+    Шешім қалай қабылданады: әр жазудың БІРМӘНДІ әріптерін санаймыз —
+    яғни екінші жазуда ұқсасы жоқ әріптерді (латын `l`, `d`, `u`; кирилл
+    `б`, `ж`, `з`). Қай жазуда бірмәнді әріп болса, сөз соныкі, ал екінші
+    жазудың әріптері — кіріп кеткен бөгде таңба.
+
+    None қайтарылады, егер:
+      * екі жақта да бірмәнді әріп болса (шын аралас жазу: «PRщик»),
+      * не екі жақта да болмаса (шешуге дерек жоқ),
+      * не азшылықтың ішінде ұқсасы жоқ әріп болса (автоматты түзету қате
+        нәтиже беретін еді).
+    """
+    latyn = [c for c in soz if LATIN_LETTER.match(c)]
+    kirill = [c for c in soz if CYRILLIC_LETTER.match(c)]
+    if not latyn or not kirill:
+        return None
+
+    latyn_birmandi = [c for c in latyn if c not in HOMOGLYPHS]
+    kirill_birmandi = [c for c in kirill if c not in KERI_HOMOGLYPHS]
+
+    if latyn_birmandi and not kirill_birmandi:
+        basym, azshylyq, karta = "латын", kirill, KERI_HOMOGLYPHS
+    elif kirill_birmandi and not latyn_birmandi:
+        basym, azshylyq, karta = "кирилл", latyn, HOMOGLYPHS
+    else:
+        return None
+
+    if any(c not in karta for c in azshylyq):
+        return None  # автоматты түзетуге келмейді
+
+    auysatyn = sorted(set(azshylyq))
+    tuzetilgen = "".join(karta.get(c, c) if c in azshylyq else c for c in soz)
+    return basym, tuzetilgen, auysatyn
+
+
+def gomoglif_tabu(mati: str) -> list[Belgi]:
+    """Бір сөздің ішінде екі жазудың араласып кеткенін табады.
+
+    Екі бағытты да ұстайды:
+      * кирилл сөзіне кіріп кеткен латын әрпі («бiр» — латын i),
+      * латын сөзіне кіріп кеткен кирилл әрпі («Clаudе» — кирилл а, е).
+
+    Таза латын сөзі (AI, Claude, startup) — заңды кодты ауыстыру, оған
+    тиіспейміз.
     """
     belgiler: list[Belgi] = []
     for m in WORD.finditer(mati):
         soz = m.group()
-        latyn = [c for c in soz if LATIN_LETTER.match(c)]
-        kirill = [c for c in soz if CYRILLIC_LETTER.match(c)]
-        if not latyn or not kirill:
-            continue  # таза латын не таза кирилл — қалыпты жағдай
-        kudikti = sorted({c for c in latyn if c in HOMOGLYPHS})
-        if kudikti:
-            tuzetu = soz
-            for c in kudikti:
-                tuzetu = tuzetu.replace(c, HOMOGLYPHS[c])
-            belgiler.append(
-                Belgi(
-                    turi="гомоглиф",
-                    dengei="qate",
-                    habar=(
-                        f"«{soz}» сөзінде латын әрпі бар: "
-                        + ", ".join(f"«{c}» → «{HOMOGLYPHS[c]}»" for c in kudikti)
-                        + f". Дұрысы: «{tuzetu}». Көзге бірдей көрінеді, "
-                        "бірақ іздеу таппайды."
-                    ),
-                    uzindi=_kontekst(mati, m.start()),
+        shesim = _talda_aralas(soz)
+
+        if shesim is None:
+            # Аралас, бірақ автоматты шешуге келмейді.
+            if LATIN_LETTER.search(soz) and CYRILLIC_LETTER.search(soz):
+                belgiler.append(
+                    Belgi(
+                        turi="аралас-жазу",
+                        dengei="eskertu",
+                        habar=(
+                            f"«{soz}» сөзінде латын мен кирилл араласқан, бірақ "
+                            "қайсысы дұрыс екені анық емес — қолмен қара. "
+                            "Кірме терминге қосымша жалғасаң, дефис қой: "
+                            "«AI-ды», «PR-ы»."
+                        ),
+                        uzindi=_kontekst(mati, m.start()),
+                    )
                 )
+            continue
+
+        basym, tuzetilgen, auysatyn = shesim
+        bogde = "кирилл" if basym == "латын" else "латын"
+        karta = KERI_HOMOGLYPHS if basym == "латын" else HOMOGLYPHS
+        belgiler.append(
+            Belgi(
+                turi="гомоглиф",
+                dengei="qate",
+                habar=(
+                    f"«{soz}» — {basym} сөзі, бірақ ішінде {bogde} әрпі бар: "
+                    + ", ".join(f"«{c}» → «{karta[c]}»" for c in auysatyn)
+                    + f". Дұрысы: «{tuzetilgen}». Көзге бірдей көрінеді, "
+                    "бірақ іздеу таппайды."
+                ),
+                uzindi=_kontekst(mati, m.start()),
             )
-        else:
-            belgiler.append(
-                Belgi(
-                    turi="аралас-жазу",
-                    dengei="eskertu",
-                    habar=(
-                        f"«{soz}» сөзінде латын мен кирилл араласқан. Кірме "
-                        "терминге қосымша жалғасаң, дефис қой: «AI-ды», «PR-ы»."
-                    ),
-                    uzindi=_kontekst(mati, m.start()),
-                )
-            )
+        )
     return belgiler
 
 
@@ -300,10 +349,8 @@ def tuzetu(mati: str) -> str:
     `AI`, `startup` сияқты таза латын сөздері сол күйі қалады.
     """
     def _auystyru(m: re.Match) -> str:
-        soz = m.group()
-        if not CYRILLIC_LETTER.search(soz):
-            return soz
-        return "".join(HOMOGLYPHS.get(c, c) if LATIN_LETTER.match(c) else c for c in soz)
+        shesim = _talda_aralas(m.group())
+        return m.group() if shesim is None else shesim[1]
 
     return WORD.sub(_auystyru, mati)
 

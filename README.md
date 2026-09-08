@@ -18,6 +18,7 @@
 | Мәселе | Мысал | Салдары |
 |---|---|---|
 | **Гомоглиф** | `бiр` (латын i) vs `бір` (кирилл і) | іздеу таппайды, хэштег өледі |
+| **Үндестік** | `дедлайнге` (дұрысы `дедлайнға`) | кірме сөзге қосымша қате жалғанады |
 | **Орысша калька** | «мақсатымыз болып табылады» | пост хабарламаға айналады |
 | **Кодты ауыстыру** | «мерзімге үлгермедік» | жасанды естіледі |
 | **Аударма синтаксисі** | ағылшынша SVO ретімен жазу | AI жазғаны бірден көрінеді |
@@ -84,7 +85,7 @@ cd theards
 |---|---|
 | **threads-post-jazu** | Пост не тред жазады. 13 hook формуласынан мақсатқа қарай таңдайды, 500 таңбаға сыйғызады, тексереді |
 | **threads-redaktor** | Кеңсе тілін, кальканы, AI іздерін тазалайды. `--mode audit` режимінде тек тексереді, мәтінге тимейді |
-| **threads-emle** | Гомоглиф, әліпби, таңба шегі, хэштег нұсқалары, QazLat 2021 транслитерациясы |
+| **threads-emle** | Гомоглиф (екі бағытта), дауысты үндестігі, әліпби, таңба шегі, хэштег нұсқалары, QazLat 2021 транслитерациясы |
 | **threads-hook-taldau** | Басқаның постын бөлшектеп, формуласын анықтайды әрі не көшірілмейтінін айтады |
 | **threads-jauap** | Жауап не дәйексөз посты. Қайсысы дұрыс екенін де шешеді |
 | **threads-jospar** | Апталық жоспар: бағаналар, формулалар, уақыт, жауап беру нормасы |
@@ -150,12 +151,14 @@ THREADS_POSTER="python3 менің_постерім.py"
 
 ```python
 import sys; sys.path.insert(0, "theards")
-from lib import tolyq, gomoglif_tuzetu, hashtag_nusqalary, latynga
+from lib import tolyq, gomoglif_tuzetu, undestik_tekseru, hashtag_nusqalary, latynga
 
-print(tolyq("постың мәтіні"))          # емле + тіл тазалығы
-print(gomoglif_tuzetu("Бiз"))           # → Біз
+print(tolyq("постың мәтіні"))           # емле + тіл тазалығы + үндестік
+print(gomoglif_tuzetu("Бiз"))           # → Біз      (латын i → кирилл і)
+print(gomoglif_tuzetu("Clаudе"))        # → Claude   (кирилл а,е → латын a,e)
+print(undestik_tekseru("дедлайнге"))    # → дедлайнға
 print(hashtag_nusqalary("қазақ тілі"))  # кирилл + латын нұсқасы
-print(latynga("Қазақстан"))             # Qazaqstan (QazLat 2021)
+print(latynga("тіл"))                   # tıl — і → ı (нүктесіз), и → i (нүктелі)
 ```
 
 Командалық жолдан:
@@ -163,7 +166,9 @@ print(latynga("Қазақстан"))             # Qazaqstan (QazLat 2021)
 ```bash
 python3 -m lib.emle "мәтін"      # гомоглиф, әліпби, Threads шектеулері
 python3 -m lib.kalka "мәтін"     # калька, кеңсе тілі, құрылым
+python3 -m lib.undestik "мәтін"  # дауысты үндестігі
 python3 -m lib.translit "сөз"    # транслитерация, хэштег
+python3 -m lib.audit "мәтін"     # бәрі бірге, шығу коды 0/1
 ```
 
 ## Білім базасы
@@ -181,7 +186,7 @@ python3 -m lib.translit "сөз"    # транслитерация, хэштег
 ## Даму
 
 ```bash
-python3 -m unittest discover -s tests    # 28 тест
+python3 -m unittest discover -s tests    # 45 тест
 python3 scripts/siltemelerdi_tekseru.py  # markdown сілтемелері
 python3 scripts/frontmatter_tekseru.py   # SKILL.md frontmatter
 ```
@@ -191,6 +196,25 @@ python3 scripts/frontmatter_tekseru.py   # SKILL.md frontmatter
 
 Әсіресе пайдалы үлес: `lib/kalka.py` ішіндегі `SOZDIK` тізіміне жаңа калька
 қосу. Әр жазбаға орысша түпнұсқасын және нақты баламасын жаз.
+
+## Қазақ тіліне арналған басқа ресурстар
+
+Бұл бандл әдейі тәуелділіксіз, сондықтан төмендегілердің бірде-бірін
+кіргізбейді. Бірақ терең тексеру керек болса, солар жақсы жалғасы:
+
+| Ресурс | Не береді | Лицензия |
+|---|---|---|
+| [hunspell-kk](https://github.com/taem/hunspell-kk) | 53 мыңнан астам түбір сөз, нақты орфографиялық тексеру | GPL-2.0+ / LGPL-2.1+ / MPL-1.1+ |
+| [apertium-kaz](https://github.com/apertium/apertium-kaz) | толық морфологиялық талдағыш | GPL |
+| [kaznlp](https://github.com/nlacslab/kaznlp) | токенизация, морфология, тіл анықтау | — |
+| [UD_Kazakh-KTB](https://github.com/UniversalDependencies/UD_Kazakh-KTB) | синтаксистік корпус, ережені тексеруге | CC BY-SA |
+| [pg-kazsearch](https://github.com/darkhanakh/pg-kazsearch) | қазақ тіліне арналған стеммер | — |
+| [awesome-kaz-datasets](https://github.com/Allessyer/awesome-kaz-datasets) | қазақ тіліндегі деректер жинақтарының каталогы | — |
+
+`lib/emle.py` ережеге негізделген: гомоглифті, әліпби үлесін, үндестікті
+ұстайды, бірақ **сөздің дұрыс жазылғанын білмейді**. Оны білу үшін
+hunspell сөздігі керек. Тәуелділік қосуға дайын болсаң, сол — ең тиімді
+келесі қадам.
 
 ## Лицензия
 

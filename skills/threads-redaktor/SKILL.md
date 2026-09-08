@@ -1,6 +1,7 @@
 ---
 name: threads-redaktor
 description: Қазақша мәтінді редакциялау: орысша калька, кеңсе тілі, аударма клишелері мен AI іздерін тазалау, сосын Threads-ке жіберер алдында толық тексеру. Режимдері --mode taza (қайта жазу) және --mode audit (тек тексеру, өзгертпей). Use when the user wants to clean up or humanize Kazakh text, remove AI tells, fix officialese, or audit a draft before posting. Почистить казахский текст от канцелярита и кальки. Нөлден жазу үшін емес (ол threads-post-jazu).
+license: MIT
 ---
 
 # Қазақша мәтін редакторы

@@ -15,24 +15,38 @@ import re
 
 # Реті маңызды: көп таңбалы сәйкестік бұрын тұруы керек.
 QAZLAT: list[tuple[str, str]] = [
-    ("ю", "iu"), ("я", "ia"), ("ц", "ts"), ("ч", "ch"), ("щ", "shsh"),
+    ("ю", "iu"), ("я", "ia"), ("ц", "ts"), ("ч", "ch"), ("щ", "ş"),
     ("а", "a"), ("ә", "ä"), ("б", "b"), ("в", "v"), ("г", "g"), ("ғ", "ğ"),
     ("д", "d"), ("е", "e"), ("ё", "io"), ("ж", "j"), ("з", "z"), ("и", "i"),
     ("й", "i"), ("к", "k"), ("қ", "q"), ("л", "l"), ("м", "m"), ("н", "n"),
     ("ң", "ñ"), ("о", "o"), ("ө", "ö"), ("п", "p"), ("р", "r"), ("с", "s"),
     ("т", "t"), ("у", "u"), ("ұ", "ū"), ("ү", "ü"), ("ф", "f"), ("х", "h"),
-    ("һ", "h"), ("ш", "ş"), ("ы", "y"), ("і", "i"), ("э", "e"),
+    ("һ", "h"), ("ш", "ş"), ("ы", "y"), ("і", "ı"), ("э", "e"),
     ("ъ", ""), ("ь", ""),
 ]
+
+# Диакритикасыз баламасы — хэштег пен URL үшін.
+# Бас әріпке айналдырғанда `.upper()` қате істейтін жағдай:
+# `i` (и-ден шыққан нүктелі) → `İ`, ал `ı` (і-ден шыққан нүктесіз) → `I`.
+_BAS_ARIP = {"i": "İ", "ı": "I"}
 
 # Диакритикасыз баламасы — хэштег пен URL үшін.
 _ASCII_JUPTAR = {"ä": "a", "ğ": "g", "ñ": "n", "ö": "o",
                  "ş": "s", "ū": "u", "ü": "u", "ı": "i"}
 ASCII_BALAMA = str.maketrans(
-    {**_ASCII_JUPTAR, **{k.upper(): v.upper() for k, v in _ASCII_JUPTAR.items()}}
+    {**_ASCII_JUPTAR,
+     **{k.upper(): v.upper() for k, v in _ASCII_JUPTAR.items()},
+     "İ": "I"}
 )
 
 _JIYN = {k: v for k, v in QAZLAT}
+
+
+def _bas_arip(aud: str) -> str:
+    """Латын тіркесінің бірінші әрпін дұрыс бас әріпке айналдырады."""
+    if not aud:
+        return aud
+    return _BAS_ARIP.get(aud[0], aud[0].upper()) + aud[1:]
 
 
 def latynga(mati: str, ascii_qauipsiz: bool = False) -> str:
@@ -48,7 +62,7 @@ def latynga(mati: str, ascii_qauipsiz: bool = False) -> str:
         toment = tanba.lower()
         if toment in _JIYN:
             aud = _JIYN[toment]
-            natije.append(aud.capitalize() if tanba.isupper() and aud else aud)
+            natije.append(_bas_arip(aud) if tanba.isupper() else aud)
         else:
             natije.append(tanba)
     shyq = "".join(natije)

@@ -1,6 +1,7 @@
 ---
 name: threads-jauap
 description: Басқа адамның Threads постына қазақша жауап немесе дәйексөз посты (quote) жазу. Жауап па, дәйексөз бе — соны да шешеді. Use when the user wants to reply to a Threads post, write a quote post, or engage with someone else's content in Kazakh. Написать ответ на пост в Threads на казахском. Өз постыңды жазу үшін емес (ол threads-post-jazu).
+license: MIT
 ---
 
 # Жауап пен дәйексөз

@@ -1,6 +1,7 @@
 ---
 name: threads-jospar
 description: Қазақша Threads контентінің апталық жоспарын құру: күн сайынғы тақырып, hook формуласы, жеке пост пен тредтің арақатынасы, жариялау уақыты және жауап беру нормасы. Use when the user wants a weekly Threads content plan or calendar in Kazakh. Составить контент-план для Threads на неделю. Жеке пост жазу үшін емес (ол threads-post-jazu).
+license: MIT
 ---
 
 # Апталық контент жоспары

@@ -1,6 +1,7 @@
 ---
 name: threads-post-jazu
 description: Қазақ тілінде Threads посты немесе тред жазу. 13 hook формуласының ішінен мақсатқа қарай (жауап, репост, лайк, дәйексөз) біреуін таңдап, 500 таңба шегіне сыйғызып, тіл тазалығы мен емлесін тексеріп береді. Use when the user wants to write a Threads post in Kazakh, turn notes into a Kazakh thread, or needs a Kazakh hook. Написать пост в Threads на казахском. Дайын драфтты тексеру үшін емес (ол threads-redaktor), басқаның постын талдау үшін емес (ол threads-hook-taldau).
+license: MIT
 ---
 
 # Threads посты мен тредін жазу

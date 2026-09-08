@@ -6,6 +6,7 @@
     translit   — кирилл ↔ латын (QazLat 2021), хэштег нұсқалары
     url_parser — Threads сілтемелерін талдау
     maquldau   — драфтты мақұлдау карточкасы
+    undestik   — дауысты үндестігі (қосымша дұрыс жалғанған ба)
     jariyalau  — қолмен / өзіндік жариялау қабаты
     audit      — emle + kalka біріктірілген толық тексеру
 
@@ -33,6 +34,8 @@ _KARTA: dict[str, tuple[str, str]] = {
     "jariyala": ("jariyalau", "jariyala"),
     "qabat": ("jariyalau", "qabat"),
     "qoldan_habar": ("jariyalau", "qoldan_habar"),
+    "undestik_tekseru": ("undestik", "tekseru"),
+    "Undestik": ("undestik", "Undestik"),
     "tolyq": ("audit", "tolyq"),
     "ToliqEsep": ("audit", "ToliqEsep"),
 }
@@ -64,4 +67,6 @@ if TYPE_CHECKING:  # тек редактор мен тип тексергішк�
     from .kalka import tekseru as kalka_tekseru
     from .maquldau import kartochka
     from .translit import hashtag, hashtag_nusqalary, latynga
+    from .undestik import Undestik
+    from .undestik import tekseru as undestik_tekseru
     from .url_parser import talda as url_talda

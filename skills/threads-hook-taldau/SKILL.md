@@ -1,6 +1,7 @@
 ---
 name: threads-hook-taldau
 description: Басқа адамның Threads постын немесе тредін талдап, қандай hook формуласы қолданылғанын анықтау және сол құрылымның бос үлгісін қайтару. Use when the user shares a viral Threads post and asks why it worked, what hook it uses, or wants to reverse-engineer its structure. Разобрать вирусный пост в Threads. Жаңа пост жазу үшін емес (ол threads-post-jazu).
+license: MIT
 ---
 
 # Hook талдау

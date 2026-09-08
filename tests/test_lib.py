@@ -5,7 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from lib import emle, kalka, translit, url_parser, maquldau, jariyalau, audit
+from lib import (audit, emle, jariyalau, kalka, maquldau, translit,
+                 undestik, url_parser)
 
 
 class GomoglifTest(unittest.TestCase):
@@ -141,6 +142,102 @@ class AuditTest(unittest.TestCase):
 
     def test_taza_matin_jiberiledi(self):
         r = audit.tolyq("Кеше жаңа фича шығардық.")
+        self.assertTrue(r.joneltuge_dayin)
+
+
+class KeriGomoglifTest(unittest.TestCase):
+    """Латын сөзінің ішіне кирилл әрпі кіріп кетсе де ұстау керек."""
+
+    BUZYQ = "Cl" + chr(0x430) + "ud" + chr(0x435)  # Clаudе — кирилл а мен е
+
+    def test_keri_bagyt_tabylady(self):
+        self.assertIn("гомоглиф", [b.turi for b in emle.gomoglif_tabu(self.BUZYQ)])
+
+    def test_keri_bagyt_latynga_tuzetiledi(self):
+        # Бұрын кодтың бағыты бір жақты болғандықтан, сөз одан бетер
+        # кириллге айналып кететін. Енді таза латынға оралуы керек.
+        tuzetilgen = emle.tuzetu(self.BUZYQ)
+        self.assertEqual(tuzetilgen, "Claude")
+        self.assertTrue(tuzetilgen.isascii())
+
+    def test_shyn_aralas_soz_avtomatty_tuzetilmeidi(self):
+        # «PRщик» — екі жақта да бірмәнді әріп бар, шешуге дерек жоқ.
+        self.assertEqual(emle.tuzetu("PRщик"), "PRщик")
+        self.assertEqual(
+            [b.turi for b in emle.gomoglif_tabu("PRщик")], ["аралас-жазу"]
+        )
+
+    def test_keri_karta_toly(self):
+        for kirill, latyn in emle.KERI_HOMOGLYPHS.items():
+            self.assertEqual(emle.HOMOGLYPHS[latyn], kirill)
+
+
+class UndestikTest(unittest.TestCase):
+    BUZYQ = ["дедлайнге", "релизға", "стартапке", "фидбекқа"]
+    DURYS = [
+        "дедлайнға", "релизге", "стартапқа", "фидбекке", "балалар", "үйде",
+        "қалада", "келді", "жалды", "адамдар", "кітапты", "мектепте",
+        "жеті", "алты", "терезеде", "өнерді", "тәжірибеден",
+    ]
+
+    def test_buzylgan_tabylady(self):
+        for soz in self.BUZYQ:
+            with self.subTest(soz=soz):
+                self.assertTrue(undestik.tekseru(soz), soz)
+
+    def test_duris_soz_belgilenbeidi(self):
+        for soz in self.DURYS:
+            with self.subTest(soz=soz):
+                self.assertEqual(undestik.tekseru(soz), [], soz)
+
+    def test_tuzetilgen_nusqa_duris(self):
+        (u,) = undestik.tekseru("дедлайнге")
+        self.assertEqual(u.tuzetilgen, "дедлайнға")
+
+    def test_kumandi_dauysty_tekserilmeidi(self):
+        # «у» кірме сөздерде екі түрлі ұстанады — тексеруден тыс.
+        self.assertEqual(undestik.tekseru("институтке"), [])
+
+    def test_qysqa_tubir_otkizip_jiberiledi(self):
+        # «да» — түбірдің өзі, қосымша емес.
+        self.assertEqual(undestik.tekseru("ада"), [])
+
+
+class TranslitDurystyqTest(unittest.TestCase):
+    """QazLat 2021: `I ı` мен `İ i` — бөлек әріптер."""
+
+    def test_i_nuktesiz(self):
+        self.assertEqual(translit.latynga("тіл"), "tıl")
+
+    def test_i_nukteli(self):
+        self.assertEqual(translit.latynga("идея"), "ideia")
+
+    def test_i_men_i_ajyratylady(self):
+        self.assertNotEqual(translit.latynga("тіл"), translit.latynga("тил"))
+
+    def test_bas_arip_turikshe(self):
+        self.assertEqual(translit.latynga("Іле"), "Ile")     # ı → I
+        self.assertEqual(translit.latynga("Идея"), "İdeia")  # i → İ
+
+    def test_ascii_diakritikany_tusiredi(self):
+        for soz in ["Әсем", "Идея", "Іле", "Ғайша", "Ңұр", "Өмір", "Шаш"]:
+            with self.subTest(soz=soz):
+                self.assertTrue(
+                    translit.latynga(soz, ascii_qauipsiz=True).isascii(), soz
+                )
+
+    def test_hashtag_arqashan_ascii(self):
+        self.assertTrue(translit.hashtag_nusqalary("Әсем тіл")["латын"].isascii())
+
+
+class AuditUndestikTest(unittest.TestCase):
+    def test_undestik_esepke_kiredi(self):
+        r = audit.tolyq("дедлайнге үлгермедік")
+        self.assertEqual(len(r.undestik), 1)
+
+    def test_undestik_jiberuge_kedergi_emes(self):
+        # Үндестік — кеңес деңгейі, қатты қате емес.
+        r = audit.tolyq("дедлайнге үлгермедік")
         self.assertTrue(r.joneltuge_dayin)
 
 
